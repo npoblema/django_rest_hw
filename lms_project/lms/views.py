@@ -1,40 +1,44 @@
-from rest_framework import viewsets, generics
-from rest_framework.permissions import IsAuthenticated
-from users.permissions import IsModerator, IsOwner
-from .models import Course, Lesson
-from .serializers import CourseSerializer, LessonSerializer
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from .models import Lesson, Course, Subscription
+from .serializers import LessonSerializer, CourseSerializer
+from .paginators import CustomPagination
 
-class CourseViewSet(viewsets.ModelViewSet):
+class LessonListView(generics.ListCreateAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    pagination_class = CustomPagination
+    permission_classes = [IsAdminUser]
+
+class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
+
+class SubscribeToCourseView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Course.objects.all()
-    serializer_class = CourseSerializer
 
-    def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [IsAuthenticated()]
-        elif self.action in ['update', 'partial_update']:
-            return [IsAuthenticated(), IsModerator | IsOwner]
-        elif self.action in ['create', 'destroy']:
-            return [IsAuthenticated(), ~IsModerator]
-        return [IsAuthenticated()]
+    def post(self, request, pk):
+        course = self.get_object()
+        subscription, created = Subscription.objects.get_or_create(user=request.user, course=course)
+        if created:
+            return Response({"message": "Подписка оформлена"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Вы уже подписаны"}, status=status.HTTP_200_OK)
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+class UnsubscribeFromCourseView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    queryset = Course.objects.all()
 
-class LessonListCreateView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated, ~IsModerator]
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-class LessonRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-
-    def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return [IsAuthenticated(), IsModerator | IsOwner]
-        elif self.request.method == 'DELETE':
-            return [IsAuthenticated(), ~IsModerator]
-        return [IsAuthenticated()]
+    def delete(self, request, pk):
+        course = self.get_object()
+        deleted, _ = Subscription.objects.filter(user=request.user, course=course).delete()
+        if deleted:
+            return Response({"message": "Подписка отменена"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Подписка не найдена"}, status=status.HTTP_404_NOT_FOUND)

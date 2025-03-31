@@ -1,22 +1,40 @@
 from django.db import models
-from users.models import User
+from django.conf import settings
 
 class Course(models.Model):
-    title = models.CharField(max_length=200)
-    preview = models.ImageField(upload_to='previews/', blank=True, null=True)
-    description = models.TextField()
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courses', null=True)
-
-    def __str__(self):
-        return self.title
+    title = models.CharField(max_length=255)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_courses'
+    )
 
 class Lesson(models.Model):
-    title = models.CharField(max_length=200)
-    description = models.TextField()
-    preview = models.ImageField(upload_to='previews/', blank=True, null=True)
-    video_url = models.URLField()
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons')
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='lessons', null=True)
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    course = models.ForeignKey(
+        'Course',
+        on_delete=models.CASCADE,
+        related_name='lessons'
+    )
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='owned_lessons'
+    )
 
-    def __str__(self):
-        return self.title
+class Subscription(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='subscriptions'
+    )
+    course = models.ForeignKey(
+        'Course',
+        on_delete=models.CASCADE,
+        related_name='subscribers'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'course')

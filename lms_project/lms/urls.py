@@ -1,12 +1,9 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from .views import CourseViewSet, LessonListCreateView, LessonRetrieveUpdateDestroyView
-
-router = DefaultRouter()
-router.register(r'courses', CourseViewSet)
+from django.urls import path
+from .views import LessonListView, LessonDetailView, SubscribeToCourseView, UnsubscribeFromCourseView
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('lessons/', LessonListCreateView.as_view(), name='lesson-list-create'),
-    path('lessons/<int:pk>/', LessonRetrieveUpdateDestroyView.as_view(), name='lesson-detail'),
+    path('lessons/', LessonListView.as_view(), name='lesson-list'),
+    path('lessons/<int:pk>/', LessonDetailView.as_view(), name='lesson-detail'),
+    path('courses/<int:pk>/subscribe/', SubscribeToCourseView.as_view(), name='subscribe'),
+    path('courses/<int:pk>/unsubscribe/', UnsubscribeFromCourseView.as_view(), name='unsubscribe'),
 ]
