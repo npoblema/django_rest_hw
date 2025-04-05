@@ -1,5 +1,5 @@
 """
-WSGI config for lms_project project.
+WSGI config for lms_project lms_project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

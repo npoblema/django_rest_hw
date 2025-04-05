@@ -4,6 +4,17 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import Lesson, Course, Subscription
 from .serializers import LessonSerializer, CourseSerializer
 from .paginators import CustomPagination
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
+
+class CourseListView(APIView):
+    def get(self, request):
+        courses = Course.objects.all()
+        paginator = PageNumberPagination()
+        paginator.page_size = 10  # Можно переопределить PAGE_SIZE здесь
+        page = paginator.paginate_queryset(courses, request)
+        serializer = CourseSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 class LessonListView(generics.ListCreateAPIView):
     queryset = Lesson.objects.all()
