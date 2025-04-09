@@ -1,10 +1,9 @@
 from django.urls import path
-from .views import LessonListView, LessonDetailView, SubscribeToCourseView, UnsubscribeFromCourseView, CourseListView
+from .views import LessonViewSet, PaymentCreateView, PaymentSuccessView, PaymentCancelView
 
 urlpatterns = [
-    path('lessons/', LessonListView.as_view(), name='lesson-list'),
-    path('lessons/<int:pk>/', LessonDetailView.as_view(), name='lesson-detail'),
-    path('courses/<int:pk>/subscribe/', SubscribeToCourseView.as_view(), name='subscribe'),
-    path('courses/<int:pk>/unsubscribe/', UnsubscribeFromCourseView.as_view(), name='unsubscribe'),
-    path('courses/', CourseListView.as_view(), name='course-list'),
+    path('lessons/', LessonViewSet.as_view({'get': 'list', 'post': 'create'}), name='lesson-list-create'),
+    path('payment/create/', PaymentCreateView.as_view(), name='payment-create'),
+    path('payment/success/', PaymentSuccessView.as_view(), name='payment-success'),
+    path('payment/cancel/', PaymentCancelView.as_view(), name='payment-cancel'),
 ]

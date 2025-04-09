@@ -22,6 +22,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+STRIPE_SECRET_KEY = 'sk_test_51RBcwTJZojg9HQPw9wH4cuxktpBMmnVAmcB0xfsCh7CarwAioipQ3sD9cytF9oI4JxsnVafn6f5TdY2gLGBGK19h00gkJVHtgf'
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51RBcwTJZojg9HQPwsbKTDGJoOvYxZJKDozRmM1eGGKjTwp4yZGHwQ6VNRTrpQVJm2LASiUkjgcjiNcUTK7xt52gl0050mLTU9w'
 SECRET_KEY = 'django-insecure-xj#ak6o7ei#a=tkbe+g(2gg+b@)ms!!or9dvrz3mydikzk0hja'
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -40,10 +42,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_spectacular',
     'django_filters',
     'users',
     'lms',
 ]
+
+APPEND_SLASH = True
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -80,6 +86,9 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_SCHEMA_CLASS': (
+            'drf_spectacular.openapi.AutoSchema',
     ),
 }
 
@@ -146,3 +155,5 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10  # Количество элементов на странице
 }
+
+APPEND_SLASH = True
