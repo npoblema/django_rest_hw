@@ -73,3 +73,19 @@ class SubscriptionTest(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())
+
+class AuthTests(APITestCase):
+    def test_register_user(self):
+        url = reverse('register')
+        data = {'email': 'newuser@example.com', 'password': 'pass123'}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
+
+    def test_login_user(self):
+        User.objects.create_user(email='testuser@example.com', password='pass123')
+        url = reverse('token_obtain_pair')
+        data = {'email': 'testuser@example.com', 'password': 'pass123'}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('access', response.data)
