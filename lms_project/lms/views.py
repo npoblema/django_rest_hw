@@ -1,85 +1,65 @@
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from .models import Lesson, Course, Subscription, Payment
-from .serializers import LessonSerializer, CourseSerializer
-from .paginators import CustomPagination
-from rest_framework.pagination import PageNumberPagination
+# lms/views.py
+from rest_framework import viewsets, permissions, status
 from rest_framework.views import APIView
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from rest_framework import viewsets
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
+from .models import Course, Lesson, Subscription, Payment
+from .serializers import CourseSerializer, LessonSerializer, SubscriptionSerializer, PaymentSerializer
 from .services import create_stripe_checkout_session
 
-class CourseListView(APIView):
-    def get(self, request):
-        courses = Course.objects.all()
-        paginator = PageNumberPagination()
-        paginator.page_size = 10  # Можно переопределить PAGE_SIZE здесь
-        page = paginator.paginate_queryset(courses, request)
-        serializer = CourseSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
-
-class LessonListView(generics.ListCreateAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    pagination_class = CustomPagination
-    permission_classes = [IsAdminUser]
-
-class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Lesson.objects.all()
-    serializer_class = LessonSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_permissions(self):
-        if self.request.method in ['PUT', 'PATCH', 'DELETE']:
-            return [IsAdminUser()]
-        return [IsAuthenticated()]
-
-class SubscribeToCourseView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def post(self, request, pk):
-        course = self.get_object()
-        subscription, created = Subscription.objects.get_or_create(user=request.user, course=course)
-        if created:
-            return Response({"message": "Подписка оформлена"}, status=status.HTTP_201_CREATED)
-        return Response({"message": "Вы уже подписаны"}, status=status.HTTP_200_OK)
+    @extend_schema(summary="Получение списка курсов", responses={200: CourseSerializer(many=True)})
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
-class UnsubscribeFromCourseView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
-    queryset = Course.objects.all()
-
-    def delete(self, request, pk):
-        course = self.get_object()
-        deleted, _ = Subscription.objects.filter(user=request.user, course=course).delete()
-        if deleted:
-            return Response({"message": "Подписка отменена"}, status=status.HTTP_204_NO_CONTENT)
-        return Response({"message": "Подписка не найдена"}, status=status.HTTP_404_NOT_FOUND)
+    @extend_schema(summary="Создание курса", responses={201: CourseSerializer, 403: None})
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({'error': 'Только администраторы могут создавать курсы'}, status=status.HTTP_403_FORBIDDEN)
+        return super().create(request, *args, **kwargs)
 
 class LessonViewSet(viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    @extend_schema(
-        description="Получение списка всех уроков.",
-        parameters=[
-            OpenApiParameter(name='course_id', type=int, description='ID курса для фильтрации уроков'),
-        ],
-        responses={200: LessonSerializer(many=True)},
-    )
+    @extend_schema(summary="Получение списка уроков", responses={200: LessonSerializer(many=True)})
     def list(self, request, *args, **kwargs):
+        course_id = request.query_params.get('course_id')
+        if course_id:
+            self.queryset = self.queryset.filter(course_id=course_id)
         return super().list(request, *args, **kwargs)
 
-    @extend_schema(
-        description="Создание нового урока. Доступно только администраторам.",
-        request=LessonSerializer,
-        responses={201: LessonSerializer},
-    )
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+class SubscribeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(summary="Подписка на курс", responses={201: SubscriptionSerializer, 400: None})
+    def post(self, request, pk):
+        try:
+            course = Course.objects.get(pk=pk)
+            subscription, created = Subscription.objects.get_or_create(user=request.user, course=course)
+            if created:
+                return Response(SubscriptionSerializer(subscription).data, status=status.HTTP_201_CREATED)
+            return Response({'message': 'Вы уже подписаны'}, status=status.HTTP_400_BAD_REQUEST)
+        except Course.DoesNotExist:
+            return Response({'error': 'Курс не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+    @extend_schema(summary="Отписка от курса", responses={204: None, 404: None})
+    def delete(self, request, pk):
+        subscription = Subscription.objects.filter(user=request.user, course_id=pk)
+        if subscription.exists():
+            subscription.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({'error': 'Подписка не найдена'}, status=status.HTTP_404_NOT_FOUND)
 
 class PaymentCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(summary="Создание платежа", responses={201: {'payment_url': 'string'}, 404: None})
     def post(self, request):
         course_id = request.data.get('course_id')
         try:
@@ -100,9 +80,11 @@ class PaymentCreateView(APIView):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class PaymentSuccessView(APIView):
+    @extend_schema(summary="Успешная оплата", responses={200: None})
     def get(self, request):
         return Response({'message': 'Оплата успешно завершена'}, status=status.HTTP_200_OK)
 
 class PaymentCancelView(APIView):
+    @extend_schema(summary="Отмена оплаты", responses={200: None})
     def get(self, request):
         return Response({'message': 'Оплата отменена'}, status=status.HTTP_200_OK)

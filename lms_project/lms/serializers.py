@@ -1,28 +1,23 @@
+# lms/serializers.py
 from rest_framework import serializers
-from .models import Lesson, Course, Subscription
-from .validators import validate_no_external_links
-
-class LessonSerializer(serializers.ModelSerializer):
-    content = serializers.CharField(validators=[validate_no_external_links])
-
-    class Meta:
-        model = Lesson
-        fields = ['id', 'title', 'content', 'course', 'owner']
-        read_only_fields = ['owner']
-
-    def create(self, validated_data):
-        validated_data['owner'] = self.context['request'].user
-        return super().create(validated_data)
+from .models import Course, Lesson, Subscription, Payment
 
 class CourseSerializer(serializers.ModelSerializer):
-    is_subscribed = serializers.SerializerMethodField()
-
     class Meta:
         model = Course
-        fields = ['id', 'title', 'is_subscribed']
+        fields = ['id', 'title', 'description', 'price', 'owner']
 
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Subscription.objects.filter(user=request.user, course=obj).exists()
-        return False
+class LessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lesson
+        fields = ['id', 'title', 'video_url', 'course', 'owner']
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
+        fields = ['id', 'user', 'course']
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'user', 'course', 'amount', 'payment_url', 'status']
