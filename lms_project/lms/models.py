@@ -32,7 +32,7 @@ class Payment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     stripe_session_id = models.CharField(max_length=255, null=True, blank=True)
-    payment_url = models.URLField(null=True, blank=True)
+    payment_url = models.URLField(max_length=500, null=True, blank=True)  # Увеличено до 500
     status = models.CharField(max_length=20, default='pending')
 
     def __str__(self):

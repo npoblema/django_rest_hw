@@ -20,19 +20,30 @@ class CourseViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         if not request.user.is_staff:
             return Response({'error': 'Только администраторы могут создавать курсы'}, status=status.HTTP_403_FORBIDDEN)
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class LessonViewSet(viewsets.ModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    @extend_schema(summary="Получение списка уроков", responses={200: LessonSerializer(many=True)})
+    @extend_schema(summary="Получение списка курсов", responses={200: CourseSerializer(many=True)})
     def list(self, request, *args, **kwargs):
-        course_id = request.query_params.get('course_id')
-        if course_id:
-            self.queryset = self.queryset.filter(course_id=course_id)
         return super().list(request, *args, **kwargs)
+
+    @extend_schema(summary="Создание урока", responses={201: LessonSerializer, 403: None})
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({'error': 'Только администраторы могут создавать уроки'}, status=status.HTTP_403_FORBIDDEN)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class SubscribeView(APIView):
     permission_classes = [permissions.IsAuthenticated]

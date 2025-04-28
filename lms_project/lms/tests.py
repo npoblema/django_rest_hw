@@ -3,7 +3,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
 from users.models import User
-from lms.models import Course, Lesson, Subscription
+from .models import Course, Lesson, Subscription
 
 class AuthTests(APITestCase):
     def test_register_user(self):
@@ -30,7 +30,7 @@ class CourseTests(APITestCase):
     def test_create_course_as_admin(self):
         self.client.force_authenticate(user=self.admin)
         url = reverse('course-list')
-        data = {'title': 'New Course', 'price': 200.00}
+        data = {'title': 'New Course', 'price': 200.00, 'description': ''}  # Добавлено description
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
