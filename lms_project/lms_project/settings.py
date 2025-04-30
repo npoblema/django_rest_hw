@@ -1,8 +1,9 @@
-# lms_project/settings.py
 from datetime import timedelta
 from pathlib import Path
 import os
+
 from dotenv import load_dotenv
+from celery.schedules import crontab
 
 load_dotenv()
 
@@ -22,10 +23,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'rest_framework_simplejwt',
     'drf_spectacular',
-    'lms',  # Приложение lms
-    'users',  # Приложение users
+    'rest_framework_simplejwt',
+    'lms',
+    'users',
+    'django_celery_beat',
 ]
 
 MIDDLEWARE = [
@@ -85,7 +87,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'UTC'  # Временная зона приложения
 USE_I18N = True
 USE_TZ = True
 
@@ -111,3 +113,19 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
 
 APPEND_SLASH = True
+
+CELERY_BROKER_URL = f"redis://{os.getenv('REDIS_HOST', 'localhost')}:{os.getenv('REDIS_PORT', '6379')}/{os.getenv('REDIS_DB', '0')}"
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+CELERY_BEAT_SCHEDULE = {
+    'block-inactive-users': {
+        'task': 'lms.tasks.block_inactive_users',
+        'schedule': crontab(hour=0, minute=0),
+    },
+}
+TIME_ZONE = 'UTC'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
