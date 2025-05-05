@@ -1,7 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
 import os
-
 from dotenv import load_dotenv
 from celery.schedules import crontab
 
@@ -65,7 +64,7 @@ DATABASES = {
         'ENGINE': os.getenv('ENGINE', 'django.db.backends.postgresql'),
         'NAME': os.getenv('NAME', 'lms_db_new'),
         'USER': os.getenv('USER', 'postgres'),
-        'PASSWORD': os.getenv('PASSWORD', 'password123'),
+        'PASSWORD': os.getenv('PASSWORD', '123456'),
         'HOST': os.getenv('HOST', 'localhost'),
         'PORT': os.getenv('PORT', '5432'),
     }
@@ -87,7 +86,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'  # Временная зона приложения
+TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
@@ -121,11 +120,21 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_ENABLE_UTC = True
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 CELERY_BEAT_SCHEDULE = {
     'block-inactive-users': {
         'task': 'lms.tasks.block_inactive_users',
         'schedule': crontab(hour=0, minute=0),
     },
 }
-TIME_ZONE = 'UTC'
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Настройки почты (SMTP для Gmail)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = os.getenv('EMAIL_PORT', 587)
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'your-email@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'your-app-password')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
