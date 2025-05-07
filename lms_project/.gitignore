@@ -1,4 +1,37 @@
+
+#### 4. `.gitignore`
+Исключает ненужные файлы из Git.
+
+```gitignore
+# Python
 __pycache__/
 *.py[cod]
-*.sqlite3
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
 venv/
+env/
+
+# Django
+*.log
+*.pot
+*.pyc
+migrations/
+*.sqlite3
+
+# IDE
+.idea/
+*.iml
+
+# Environment variables
+.env
+
+# Docker
+*.dockerignore
+docker-compose.yml.bak
+
+# Other
+*.DS_Store
+*.swp
