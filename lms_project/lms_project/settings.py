@@ -59,16 +59,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'lms_project.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': os.getenv('ENGINE', 'django.db.backends.postgresql'),
-        'NAME': os.getenv('NAME', 'lms_db_new'),
-        'USER': os.getenv('USER', 'postgres'),
-        'PASSWORD': os.getenv('PASSWORD', '123456'),
-        'HOST': os.getenv('HOST', 'localhost'),
-        'PORT': os.getenv('PORT', '5432'),
+
+if os.getenv("TEST_ENV"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "test_db.sqlite3"),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            'ENGINE': os.getenv('ENGINE', 'django.db.backends.postgresql'),
+            'NAME': os.getenv('NAME', 'lms_db_new'),
+            'USER': os.getenv('USER', 'postgres'),
+            'PASSWORD': os.getenv('PASSWORD', '123456'),
+            'HOST': os.getenv('HOST', 'localhost'),
+            'PORT': os.getenv('PORT', '5432'),
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
