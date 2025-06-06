@@ -40,7 +40,7 @@ sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/
 sudo systemctl restart sshd
 ```
 3. Настройка Systemd для Gunicorn
-
+```bash
 Создайте файл /etc/systemd/system/gunicorn.service:
 
 ini
@@ -56,7 +56,9 @@ ExecStart=/home/ubuntu/venv/bin/gunicorn --access-logfile - --workers 3 --bind u
 
 [Install]
 WantedBy=multi-user.target
+```
 4. Настройка Nginx
+```bash   
 Создайте файл /etc/nginx/sites-available/online-education:
 
 nginx
@@ -125,9 +127,10 @@ jobs:
           cd /home/ubuntu/online-education-rest-api
           docker-compose down
           docker-compose up -d --build
+```
 Настройка переменных окружения
 Создайте файл .env.example в репозитории:
-
+```bash
 ini
 DEBUG=0
 SECRET_KEY=your_secret_key
@@ -145,6 +148,7 @@ SERVER_IP - IP адрес сервера
 SERVER_USER - пользователь сервера
 
 SSH_PRIVATE_KEY - приватный SSH ключ
+```
 
 Все переменные из .env.example
 
