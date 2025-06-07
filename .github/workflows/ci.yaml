@@ -44,7 +44,7 @@ jobs:
         run: |
           echo "Listing files in GitHub Actions runner before rsync:"
           ls -la
-          rsync -avzr -e "ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes" \
+          rsync -avzr -e "ssh -v -o StrictHostKeyChecking=no -o IdentitiesOnly=yes" \
             --exclude '__pycache__' \
             --exclude '.git' \
             --exclude '.gitignore' \
@@ -53,7 +53,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             echo "After rsync, listing contents of ${{ secrets.DEPLOY_DIR }}:"
             ls -la ${{ secrets.DEPLOY_DIR }}
-            ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/dev/null || echo "lms_project directory not found"
+            ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/devnull || echo "lms_project directory not found"
           EOF
 
       - name: Install dependencies on server
@@ -84,11 +84,8 @@ jobs:
             cd ${{ secrets.DEPLOY_DIR }}
             docker-compose down || true
             docker-compose --version || (echo "Docker Compose not found, installing..." && sudo apt install -y docker-compose)
-            # Добавляем пользователя в группу docker
             sudo usermod -aG docker ${{ secrets.SSH_USER }}
-            # Перезагружаем сеанс для применения изменений группы
             newgrp docker << 'INNER_EOF'
-              # Загружаем переменные из .env
               export $(cat .env | xargs)
               docker-compose up -d
               echo "Deployment completed. Checking container status:"
