@@ -24,8 +24,6 @@ jobs:
 
       - name: Run tests
         run: |
-          # Добавьте команды для запуска тестов, если они есть
-          # Например: python manage.py test
           echo "Running tests (placeholder)"
 
   deploy:
@@ -36,12 +34,17 @@ jobs:
         uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
+        env:
+          SSH_AUTH_SOCK: /tmp/ssh-agent.sock
+
+      - name: Debug SSH agent
+        run: ssh-add -l
 
       - name: Copy project files to server
         run: |
           echo "Listing files in GitHub Actions runner before rsync:"
           ls -la
-          rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
+          rsync -avzr -e "ssh -o StrictHostKeyChecking=no -o IdentitiesOnly=yes" \
             --exclude '__pycache__' \
             --exclude '.git' \
             --exclude '.gitignore' \
@@ -66,7 +69,7 @@ jobs:
             echo "After cd, current directory:"
             pwd
             ls -la
-            rm -rf venv  # Удаляем старую (возможно поврежденную) виртуальную среду
+            rm -rf venv
             python3 -m venv venv
             source venv/bin/activate
             pip install --upgrade pip
@@ -79,12 +82,16 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             cd ${{ secrets.DEPLOY_DIR }}
-            # Остановка и удаление старых сервисов (если существуют)
             docker-compose down || true
-            # Проверка установки Docker Compose
             docker-compose --version || (echo "Docker Compose not found, installing..." && sudo apt install -y docker-compose)
-            # Запуск новых сервисов
-            docker-compose up -d
-            echo "Deployment completed. Checking container status:"
-            docker ps -a
+            # Добавляем пользователя в группу docker
+            sudo usermod -aG docker ${{ secrets.SSH_USER }}
+            # Перезагружаем сеанс для применения изменений группы
+            newgrp docker << 'INNER_EOF'
+              # Загружаем переменные из .env
+              export $(cat .env | xargs)
+              docker-compose up -d
+              echo "Deployment completed. Checking container status:"
+              docker ps -a
+            INNER_EOF
           EOF
