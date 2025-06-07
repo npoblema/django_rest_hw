@@ -4,9 +4,9 @@ services:
   db:
     image: postgres:13
     environment:
-      - POSTGRES_DB=${NAME}
-      - POSTGRES_USER=${USER}
-      - POSTGRES_PASSWORD=${PASSWORD}
+      - POSTGRES_DB=${lms_db_new}
+      - POSTGRES_USER=${postgres}
+      - POSTGRES_PASSWORD=${123456}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
