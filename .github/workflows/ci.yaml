@@ -42,7 +42,7 @@ jobs:
             --exclude '.gitignore' \
             ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
 
-      - name: Развертывание с Docker Compose на сервере
+      - name: Run Docker container on server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             # Переходим в директорию развертывания
