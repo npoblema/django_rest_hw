@@ -40,7 +40,7 @@ jobs:
       - name: Debug SSH agent
         run: |
           echo "Agent keys:"
-          ssh-add -l
+          ssh-add -l || echo "No keys found in agent"
 
       - name: Copy project files to server
         run: |
@@ -65,32 +65,3 @@ jobs:
             sudo apt update
             sudo apt install -y python3.12-venv
             echo "Before cd, current directory:"
-            pwd
-            ls -la
-            cd ${{ secrets.DEPLOY_DIR }}
-            echo "After cd, current directory:"
-            pwd
-            ls -la
-            rm -rf venv
-            python3 -m venv venv
-            source venv/bin/activate
-            pip install --upgrade pip
-            echo "Before installing requirements, listing contents:"
-            ls -la
-            pip install -r requirements.txt
-          EOF
-
-      - name: Run Docker Compose on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd ${{ secrets.DEPLOY_DIR }}
-            docker-compose down || true
-            docker-compose --version || (echo "Docker Compose not found, installing..." && sudo apt install -y docker-compose)
-            sudo usermod -aG docker ${{ secrets.SSH_USER }}
-            newgrp docker << 'INNER_EOF'
-              export $(cat .env | xargs)
-              docker-compose up -d
-              echo "Deployment completed. Checking container status:"
-              docker ps -a
-            INNER_EOF
-          EOF
