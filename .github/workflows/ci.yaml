@@ -42,11 +42,12 @@ jobs:
            --exclude '.gitignore' \
            ./ test@158.160.149.160:/home/test/app
 
-      - name: Deploy with Docker Compose on server
+      - name: Развертывание с Docker Compose на сервере
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # Переходим в директорию развертывания
-            cd ${{ secrets.DEPLOY_DIR }} || { echo "Directory not found"; exit 1; }
+         - ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+         - cd ${{ secrets.DEPLOY_DIR }} || { echo "Директория не найдена"; exit 1; }
+         - docker compose up -d --build
+         - echo "Развер
 
             # Устанавливаем Docker и Docker Compose, если их нет
             if ! command -v docker >/dev/null 2>&1; then
