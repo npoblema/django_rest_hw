@@ -1,16 +1,16 @@
 name: Django CI
 
-on: [ push ]
+on: [push]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v4  # Обновлено до последней версии
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5  # Обновлено до последней версии
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -26,8 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.8.0  # Обновлено до последней версии
+        uses: webfactory/ssh-agent@v0.8.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
@@ -35,31 +38,51 @@ jobs:
         run: |
           echo "Listing files in GitHub Actions runner before rsync:"
           ls -la
-          rsync -avzr -e "ssh -o StrictHostKeyChecking=no" --exclude '__pycache__' --exclude '.git' --exclude '.gitignore' --exclude '.env.sample' ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
+          rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
+            --exclude '__pycache__' \
+            --exclude '.git' \
+            --exclude '.gitignore' \
+            --exclude '.env.sample' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             echo "After rsync, listing contents of ${{ secrets.DEPLOY_DIR }}:"
             ls -la ${{ secrets.DEPLOY_DIR }}
             ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/dev/null || echo "lms_project directory not found"
           EOF
 
-      - name: Install dependencies on server
+      - name: Deploy with Docker Compose on server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            echo "Installing python3-venv..."
-            sudo apt update
-            sudo apt install -y python3.12-venv
-            echo "Before cd, current directory:"
-            pwd
-            ls -la
-            cd ${{ secrets.DEPLOY_DIR }}
-            echo "After cd, current directory:"
-            pwd
-            ls -la
-            rm -rf venv  # Удаляем старую (возможно поврежденную) виртуальную среду
-            python3 -m venv venv
-            source venv/bin/activate
-            pip install --upgrade pip
-            echo "Before installing requirements, listing contents:"
-            ls -la
-            pip install -r requirements.txt
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # Переходим в директорию развертывания
+            cd ${{ secrets.DEPLOY_DIR }} || { echo "Directory not found"; exit 1; }
+
+            # Устанавливаем Docker и Docker Compose, если их нет
+            if ! command -v docker >/dev/null 2>&1; then
+              echo "Installing Docker..."
+              sudo apt-get update
+              sudo apt-get install -y docker.io
+              sudo systemctl enable --now docker
+              sudo usermod -aG docker ${{ secrets.SSH_USER }}
+            fi
+
+            if ! docker compose version >/dev/null 2>&1; then
+              echo "Installing Docker Compose..."
+              sudo apt-get update
+              sudo apt install -y docker-compose-plugin
+            fi
+
+            # Останавливаем и удаляем старые контейнеры
+            docker compose down || true
+
+            # Загружаем переменные окружения из .env
+            if [ -f .env ]; then
+              export $(cat .env | grep -v '^#' | xargs)
+            fi
+
+            # Собираем и запускаем контейнеры
+            docker compose up -d --build
+
+            # Проверяем статус контейнеров
+            echo "Deployment completed. Checking container status:"
+            docker ps -a
           EOF
