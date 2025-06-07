@@ -46,34 +46,37 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             # Переходим в директорию развертывания
-            cd ${{ secrets.DEPLOY_DIR }} || { echo "Директория не найдена"; exit 1; }
-
-            # Устанавливаем Docker и Docker Compose, если их нет
+            cd ${{ secrets.DEPLOY_DIR }}/lms_project || { echo "Директория не найдена"; exit 1; }
+            echo "Содержимое директории: $(ls -la)"
+        
+            # Устанавливаем Docker, если его нет
             if ! command -v docker >/dev/null 2>&1; then
               echo "Installing Docker..."
               sudo apt-get update
               sudo apt-get install -y docker.io
               sudo systemctl enable --now docker
               sudo usermod -aG docker ${{ secrets.SSH_USER }}
+              newgrp docker
             fi
-
-            if ! docker compose version >/dev/null 2>&1; then
+        
+            # Устанавливаем Docker Compose, если его нет
+            if ! docker-compose --version >/dev/null 2>&1; then
               echo "Installing Docker Compose..."
               sudo apt-get update
-              sudo apt install -y docker-compose-plugin
-            fi
-
+              sudo apt-get install -y docker-compose
+           fi
+        
             # Останавливаем и удаляем старые контейнеры
-            docker compose down || true
-
+            docker-compose down || true
+        
             # Загружаем переменные окружения из .env
             if [ -f .env ]; then
               export $(cat .env | grep -v '^#' | xargs)
             fi
-
+        
             # Собираем и запускаем контейнеры
-            docker compose up -d --build
-
+            docker-compose up -d --build
+        
             # Проверяем статус контейнеров
             echo "Deployment completed. Checking container status:"
             docker ps -a
