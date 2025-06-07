@@ -52,10 +52,10 @@ jobs:
             docker-compose down || true
             # Добавляем пользователя в группу docker для прав доступа
             sudo usermod -aG docker ${{ secrets.SSH_USER }}
-            # Применяем изменения группы
+            # Применяем изменения группы и выполняем команды
             newgrp docker << 'INNER_EOF'
-              # Загружаем переменные из .env
-              export $(cat .env | xargs)
+              # Загружаем переменные из .env, если он существует
+              if [ -f .env ]; then export $(cat .env | xargs); fi
               # Запускаем контейнеры в фоновом режиме
               docker-compose up -d
               echo "Deployment completed. Checking container status:"
