@@ -36,18 +36,17 @@ jobs:
 
       - name: Copy project files to server
         run: |
-           rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
-           --exclude '__pycache__' \
-           --exclude '.git' \
-           --exclude '.gitignore' \
-           ./ test@158.160.149.160:/home/test/app
+          rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
+            --exclude '__pycache__' \
+            --exclude '.git' \
+            --exclude '.gitignore' \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
 
       - name: Развертывание с Docker Compose на сервере
         run: |
-         - ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-         - cd ${{ secrets.DEPLOY_DIR }} || { echo "Директория не найдена"; exit 1; }
-         - docker compose up -d --build
-         - echo "Развер
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+            # Переходим в директорию развертывания
+            cd ${{ secrets.DEPLOY_DIR }} || { echo "Директория не найдена"; exit 1; }
 
             # Устанавливаем Docker и Docker Compose, если их нет
             if ! command -v docker >/dev/null 2>&1; then
