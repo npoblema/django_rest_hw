@@ -38,7 +38,9 @@ jobs:
           SSH_AUTH_SOCK: /tmp/ssh-agent.sock
 
       - name: Debug SSH agent
-        run: ssh-add -l
+        run: |
+          echo "Agent keys:"
+          ssh-add -l
 
       - name: Copy project files to server
         run: |
@@ -53,7 +55,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             echo "After rsync, listing contents of ${{ secrets.DEPLOY_DIR }}:"
             ls -la ${{ secrets.DEPLOY_DIR }}
-            ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/devnull || echo "lms_project directory not found"
+            ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/dev/null || echo "lms_project directory not found"
           EOF
 
       - name: Install dependencies on server
