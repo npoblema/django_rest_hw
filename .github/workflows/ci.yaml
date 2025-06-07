@@ -36,19 +36,11 @@ jobs:
 
       - name: Copy project files to server
         run: |
-          echo "Listing files in GitHub Actions runner before rsync:"
-          ls -la
-          rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
-            --exclude '__pycache__' \
-            --exclude '.git' \
-            --exclude '.gitignore' \
-            --exclude '.env.sample' \
-            ./ ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            echo "After rsync, listing contents of ${{ secrets.DEPLOY_DIR }}:"
-            ls -la ${{ secrets.DEPLOY_DIR }}
-            ls -la ${{ secrets.DEPLOY_DIR }}/lms_project 2>/dev/null || echo "lms_project directory not found"
-          EOF
+           rsync -avzr -e "ssh -o StrictHostKeyChecking=no" \
+           --exclude '__pycache__' \
+           --exclude '.git' \
+           --exclude '.gitignore' \
+           ./ test@158.160.149.160:/home/test/app
 
       - name: Deploy with Docker Compose on server
         run: |
